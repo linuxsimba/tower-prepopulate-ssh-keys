@@ -30,7 +30,7 @@ tower_user: awx
 
 ```
 
-``ansible-playbook known_hosts.yml -e "@tower_vars.yml" ``
+Run this playbook as a Tower Job Template. Run the ``known_host.yml`` playbook in the job template
 
 ## License
 MIT
