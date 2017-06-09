@@ -1,0 +1,17 @@
+- set_fact:
+    nodename: "{{ hostvars[item].ansible_host }}"
+
+- name: run ssh-keyscan on the jumphost to get the host key of the managed host.
+  command: "ssh-keyscan {{ nodename }}"
+  register: host_fingerprint
+  delegate_to: jumphost
+  remote_user: "{{ ssh_proxy_user }}"
+  become: false
+
+- name: add ssh host key to awx known_host file
+  lineinfile:
+    dest: "{{ ansible_user_dir }}/.ssh/known_hosts"
+    line: "{{ host_fingerprint.stdout }}"
+  delegate_to: "{{ item.ansible_host }}"
+  remote_user: "{{ tower_user }}"
+  with_items: "{{ tower_hosts }}"

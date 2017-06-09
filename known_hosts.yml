@@ -1,0 +1,45 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  become_user: awx
+  gather_facts: yes
+  tasks
+    - assert:
+        that: "tower_user is defined"
+        msg: "Provide tower_user as an extra variable"
+
+    - assert:
+        that: "tower_hosts is defined"
+        msg: "Provide tower_hosts list as an extra variable"
+
+    - assert:
+        that: "ssh_proxy_ip is defined"
+        msg: "Provide the ssh_proxy_ip as an extra variable"
+
+    - assert:
+        that: "ssh_proxy_user is defined"
+        msg: "Provide the ssh_proxy_user as an extra variable"
+
+    - name: add jumphost to hostvars
+      add_host:
+          hostname: "jumphost"
+          ansible_host: "{{ ssh_proxy_ip }}"
+          ansible_user: "{{ ssh_proxy_user }}"
+      when: ssh_proxy == True
+
+    - name: delete existing known hosts file
+      file: path="{{ ansible_user_dir }}/.ssh/known_hosts" state=absent
+
+    - name: get host key of jumphost
+      command: "ssh-keyscan {{ hostvars['jumphost'].ansible_host}} "
+      register: jumphost_fingerprint
+
+    - name: add jumphost host key to awx user known hosts
+      lineinfile:
+        dest: "{{ ansible_user_dir }}/.ssh/known_hosts"
+        line: "{{ jumphost_fingerprint.stdout }}"
+        create: yes
+
+    - include: create_host_entry.yml
+      with_items: "{{ groups['all'] }}"
